@@ -135,7 +135,7 @@ class extract():
 		self.best_plane = 0
 		self.prob_max = 0.99
 		self.max_inlier = 0
-		self.error_max = 0.01
+		self.error_max = 0.3
 		self.planes = []
 
 	def load_file(self,file_location):
@@ -259,7 +259,7 @@ class extract():
 	
 	def ransac_1(self):
 
-		max_iterations = 150
+		max_iterations = 300
 		i = 0
 		err_now = np.inf
 		max_inliers = 0
@@ -268,6 +268,7 @@ class extract():
 		max_mean_error = 0
 		rest_points = 0
 		inlier_points = 0
+		inlier_var = 0
 		min_max_range = 0
 		while(i < max_iterations):
 			#print('i = ', i)
@@ -287,9 +288,10 @@ class extract():
 				min_max_range = [np.min(inliers,0), np.max(inliers,0)]
 				rest_points = rest_p
 				max_mean_error = mean_error
+				inlier_var = np.linalg.norm(np.var(inliers,0))
 
 				# From here we have to comment
-				print('og',i,max_inlier,max_mean_error, min_max_range)
+				print('og',i,max_inlier,max_mean_error, min_max_range, inlier_var)
 				self.plane_coeff = self.plane_eq(np.vstack((sample_points,inliers)))
 				inliers,num_inlier,mean_error, rest_p = self.count_inlier_2(np.vstack((sample_points,inliers)))
 				if self.cal_mean_error(inliers) < max_mean_error:
@@ -299,18 +301,19 @@ class extract():
 					max_inlier = max_inliers
 					min_max_range = [np.min(inliers,0), np.max(inliers,0)]
 					rest_points = rest_p
+					inlier_var = np.linalg.norm(np.var(inliers,0))
 					max_mean_error = self.cal_mean_error(inlier_points)
-				print('After',i,max_inlier,max_mean_error, min_max_range)
+				print('After',i,max_inlier,max_mean_error, min_max_range, inlier_var)
 				# Till Here
 
 			if i % 20 == 0:
 				print('i = ', i,'num_inlier', max_inlier, 'mean_error', max_mean_error)
 
 			i = i + 1
-		print([best_plane,max_inlier,max_mean_error, min_max_range])
+		print([best_plane,max_inlier,max_mean_error, min_max_range, inlier_var])
 		self.data = rest_points
 
-		return [best_plane,max_inlier,max_mean_error, min_max_range]
+		return [best_plane,max_inlier,max_mean_error, min_max_range, inlier_var]
 		
 
 	def ransac(self, n = 10):
@@ -318,14 +321,16 @@ class extract():
 		num_try = 1
 		while(k < n and num_try < 30 and self.data.shape[0]>0.01*self.og_data.shape[0]):
 			print(k)
-			[best_plane,max_inlier,max_mean_error, min_max_range] = self.ransac_1()
-			if (max_mean_error < 0.1 or max_inlier > 25000) :
+			[best_plane,max_inlier,max_mean_error, min_max_range, inlier_var] = self.ransac_1()
+			if ((max_mean_error < 0.1 or max_inlier > 25000) and inlier_var > 20) :
 				self.planes.append({'best plane':best_plane,
 				                'max_inlier':max_inlier,
 				                'max_mean error':max_mean_error,
 				                'range': min_max_range,
-				                'inlier rartio': max_inlier/self.og_data.shape[0]})
+				                'inlier rartio': max_inlier/self.og_data.shape[0],
+				                'inlier variance': inlier_var})
 				k = k+1
 			num_try = num_try + 1
 			print(num_try)
 		print(self.planes)
+ 
