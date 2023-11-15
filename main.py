@@ -15,7 +15,7 @@ integrate.integrate([1,2,3,4])
 integrate.plot()
 
 
-'''
+
 ## part 2
 file_location = 'Empty2.asc'
 #file_location = 'TableWithObjects2.asc'
@@ -24,9 +24,3 @@ extractor = extract()
 extractor.load_file(file_location)
 extractor.ransac(n = 1)
 extractor.plot_data_2()
-
-
-#print(extractor.plane_eq(extractor.data[0:3,:]))
-#
-#extractor.plot_data()
-'''
